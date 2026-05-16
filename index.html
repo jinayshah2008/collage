@@ -2,284 +2,545 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Vaultex</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>lost braincells</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    :root {
-      --bg: #050507;
-      --ink: #e8e4f0;
-      --muted: rgba(232,228,240,0.4);
-      --card-bg: rgba(255,255,255,0.03);
-      --card-border: rgba(255,255,255,0.06);
-      --hover-border: rgba(255,255,255,0.18);
-    }
-
-    html, body {
+    body {
+      background: #0a0000;
       min-height: 100vh;
-      background: var(--bg);
-      color: var(--ink);
-      font-family: 'Outfit', sans-serif;
-      overflow-x: hidden;
+      padding: 2.5rem 2rem 3rem;
+      font-family: sans-serif;
     }
 
-    body::after {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background: radial-gradient(ellipse 80% 60% at 50% 40%, rgba(90,60,180,0.08) 0%, transparent 70%);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image: radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1px);
-      background-size: 32px 32px;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .page {
-      position: relative;
-      z-index: 1;
-      min-height: 100vh;
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-      padding: 0 40px;
-      max-width: 1100px;
-      margin: 0 auto;
-    }
-
-    nav {
-      padding: 36px 0 0;
-      display: flex;
-      align-items: baseline;
-      gap: 12px;
-    }
-
-    .logo {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 28px;
-      letter-spacing: 2px;
-      color: var(--ink);
-      text-decoration: none;
-    }
-    .logo-dot { color: rgba(140,100,255,0.9); }
-
-    .tagline {
-      font-size: 12px;
-      font-weight: 300;
-      color: var(--muted);
-      letter-spacing: 0.5px;
-    }
-
-    .hero {
+    #loginScreen {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      min-height: 90vh;
+      gap: 14px;
+    }
+
+    #loginScreen h2 {
+      font-size: 58px;
+      font-weight: 400;
+      color: #080000;
+      -webkit-text-stroke: 1.8px #cc0000;
+      text-shadow: 0 0 8px #cc0000, 0 0 18px #880000;
+      letter-spacing: 6px;
+      margin-bottom: 1.2rem;
+    }
+
+    .login-input {
+      background: #0a0000;
+      border: 1px solid #cc0000;
+      box-shadow: 0 0 6px #cc000066;
+      color: #ff6666;
+      font-size: 14px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      width: 260px;
+      outline: none;
+      letter-spacing: 1px;
+    }
+
+    .login-input::placeholder { color: #cc000044; }
+    .login-input:focus { box-shadow: 0 0 10px #cc0000aa; }
+
+    .login-err {
+      color: #cc000088;
+      font-size: 12px;
+      letter-spacing: 1px;
+      min-height: 16px;
+    }
+
+    #appScreen { display: none; }
+
+    .heading-wrap {
       text-align: center;
-      padding: 60px 0 40px;
-      gap: 16px;
+      margin-bottom: 2rem;
     }
 
-    .hero-eyebrow {
-      font-size: 11px;
-      font-weight: 500;
-      letter-spacing: 3px;
+    .heading {
+      font-size: 58px;
+      font-weight: 400;
+      color: #080000;
+      -webkit-text-stroke: 1.8px #cc0000;
+      text-shadow: 0 0 8px #cc0000, 0 0 18px #880000;
+      letter-spacing: 6px;
+      line-height: 1;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      background: transparent;
+      border: 1px solid #cc0000;
+      box-shadow: 0 0 6px #cc000088, 0 0 12px #88000055;
+      color: #cc0000;
+      font-size: 13px;
+      padding: 8px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      letter-spacing: 2px;
       text-transform: uppercase;
-      color: var(--muted);
+      transition: box-shadow 0.2s, color 0.2s;
     }
 
-    .hero-title {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(72px, 14vw, 160px);
-      line-height: 0.9;
-      letter-spacing: 4px;
-      color: var(--ink);
-      animation: fadeIn 1s ease both;
+    .btn:hover {
+      box-shadow: 0 0 10px #cc0000bb, 0 0 20px #88000088;
+      color: #ff3333;
     }
 
-    .hero-sub {
-      font-size: 15px;
-      font-weight: 300;
-      color: var(--muted);
-      max-width: 360px;
-      line-height: 1.7;
-      animation: fadeIn 1s 0.15s ease both;
+    .btn.active {
+      background: #cc000022;
+      color: #ff4444;
+      box-shadow: 0 0 12px #cc0000cc, 0 0 24px #880000aa;
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(16px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .cards {
+    .grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 14px;
-      padding-bottom: 80px;
-      animation: fadeIn 1s 0.25s ease both;
+      gap: 20px;
+      max-width: 780px;
+      margin: 0 auto;
     }
 
-    .card {
-      position: relative;
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
+    .frame {
+      aspect-ratio: 4/3;
       border-radius: 18px;
-      padding: 32px 28px;
-      text-decoration: none;
-      color: inherit;
+      background: rgba(180, 10, 10, 0.04);
+      border: 1px solid #cc0000;
+      box-shadow:
+        0 0 1px 1px #cc0000,
+        0 0 4px 2px #aa0000,
+        0 0 10px 3px #88000077,
+        inset 0 0 6px #88000022;
+      position: relative;
+      overflow: visible;
       cursor: pointer;
-      transition: border-color 0.25s, transform 0.25s, background 0.25s;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+      transition: box-shadow 0.2s, transform 0.15s;
     }
 
-    .card::before {
-      content: '';
+    .frame:hover {
+      box-shadow:
+        0 0 2px 1px #ff2222,
+        0 0 6px 3px #cc0000,
+        0 0 14px 5px #880000aa,
+        inset 0 0 10px #88000033;
+    }
+
+    .frame.dragging { opacity: 0.4; transform: scale(0.96); }
+    .frame.drag-over {
+      box-shadow: 0 0 0 2px #ff2222, 0 0 16px #cc0000cc;
+      transform: scale(1.03);
+    }
+
+    .frame-inner {
       position: absolute;
       inset: 0;
       border-radius: 18px;
-      opacity: 0;
-      transition: opacity 0.3s;
+      overflow: hidden;
     }
 
-    .card:hover {
-      border-color: var(--hover-border);
-      transform: translateY(-4px);
-      background: rgba(255,255,255,0.05);
-    }
-    .card:hover::before { opacity: 1; }
-
-    .card-inventory::before { background: radial-gradient(ellipse at top left, rgba(80,200,140,0.08), transparent 60%); }
-    .card-marvel::before    { background: radial-gradient(ellipse at top left, rgba(220,50,50,0.08), transparent 60%); }
-    .card-notes::before     { background: radial-gradient(ellipse at top left, rgba(200,80,255,0.08), transparent 60%); }
-    .card-tools::before     { background: radial-gradient(ellipse at top left, rgba(255,180,50,0.08), transparent 60%); }
-    .card-collage::before   { background: radial-gradient(ellipse at top left, rgba(255,100,150,0.08), transparent 60%); }
-
-    .card-icon { font-size: 28px; line-height: 1; }
-
-    .card-title {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 26px;
-      letter-spacing: 1.5px;
-      color: var(--ink);
-    }
-
-    .card-desc {
-      font-size: 13px;
-      font-weight: 300;
-      color: var(--muted);
-      line-height: 1.6;
-      flex: 1;
-    }
-
-    .card-arrow {
-      font-size: 18px;
-      color: var(--muted);
-      align-self: flex-end;
-      transition: transform 0.2s, color 0.2s;
-    }
-    .card:hover .card-arrow { transform: translate(3px, -3px); color: var(--ink); }
-
-    .card-tag {
+    .frame input[type="file"] {
       position: absolute;
-      top: 20px; right: 20px;
-      font-size: 10px;
-      font-weight: 500;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      padding: 3px 10px;
-      border-radius: 100px;
-      border: 1px solid var(--card-border);
-      color: var(--muted);
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
     }
 
-    .card-wide { grid-column: span 2; }
-
-    footer {
-      position: relative;
+    .frame img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
       z-index: 1;
-      text-align: center;
-      padding: 20px 0 32px;
-      font-size: 12px;
-      color: rgba(232,228,240,0.2);
-      letter-spacing: 0.5px;
     }
 
-    @media (max-width: 700px) {
-      .page { padding: 0 20px; }
-      .cards { grid-template-columns: 1fr; }
-      .card-wide { grid-column: span 1; }
-      .hero-title { font-size: 80px; }
+    .frame .plus {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #cc000055;
+      font-size: 28px;
+      z-index: 0;
+      pointer-events: none;
     }
-    @media (max-width: 900px) and (min-width: 701px) {
-      .cards { grid-template-columns: repeat(2, 1fr); }
-      .card-wide { grid-column: span 2; }
+
+    .frame .uploading {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #cc0000aa;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      z-index: 3;
+      background: #0a000088;
+      border-radius: 18px;
+    }
+
+    .delete-btn {
+      display: none;
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #1a0000;
+      border: 1.5px solid #cc0000;
+      box-shadow: 0 0 6px #cc0000;
+      color: #ff3333;
+      font-size: 14px;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 10;
+      transition: box-shadow 0.15s;
+    }
+
+    .delete-btn:hover { box-shadow: 0 0 12px #ff0000; background: #2a0000; }
+
+    .edit-mode .frame { cursor: grab; }
+    .edit-mode .delete-btn { display: flex; }
+    .edit-mode .frame input[type="file"] { pointer-events: none; }
+
+    .edit-hint {
+      display: none;
+      text-align: center;
+      color: #cc000077;
+      font-size: 12px;
+      letter-spacing: 1.5px;
+      margin-bottom: 1.2rem;
+      text-transform: uppercase;
+    }
+
+    .edit-mode .edit-hint { display: block; }
+
+    .add-btn-wrap {
+      display: flex;
+      justify-content: center;
+      margin-top: 24px;
+    }
+
+    .visitor-tag {
+      text-align: center;
+      color: #cc000055;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
     }
   </style>
 </head>
 <body>
 
-<div class="page">
-  <nav>
-    <a class="logo" href="#">VAULTEX<span class="logo-dot">.</span></a>
+  <!-- LOGIN -->
+  <div id="loginScreen">
+    <h2>𝓑𝓪𝓭 𝓑𝓸𝔂</h2>
+    <input class="login-input" id="nameInput" type="text" placeholder="your name" />
+    <input class="login-input" id="passInput" type="password" placeholder="password" />
+    <button class="btn" id="loginBtn">enter</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
 
-  </nav>
-
-  <main>
-    <div class="hero">
-      <p class="hero-eyebrow">Welcome</p>
-      <h1 class="hero-title">EXPLORE</h1>
-      <p class="hero-sub">A collection of projects, interests, and tools — all in one place.</p>
+  <!-- APP -->
+  <div id="appScreen">
+    <div class="heading-wrap">
+      <span class="heading">𝓑𝓪𝓭 𝓑𝓸𝔂</span>
     </div>
 
-    <div class="cards">
+    <div class="visitor-tag" id="visitorTag"></div>
 
-      <a class="card card-inventory card-wide" href="https://inventory.vaultex.me">
-        <span class="card-tag">Live</span>
-        <div class="card-icon">📦</div>
-        <div class="card-title">My Inventory</div>
-        <div class="card-desc">Track components, modules, and gear. Always know what you have and where it is — searchable, fast, always online.</div>
-        <div class="card-arrow">↗</div>
-      </a>
-
-      <a class="card card-marvel" href="#">
-        <span class="card-tag">Fan</span>
-        <div class="card-icon">🛡️</div>
-        <div class="card-title">Marvel Fan</div>
-        <div class="card-desc">Characters, timelines, comics, and lore — everything Marvel in one place.</div>
-        <div class="card-arrow">↗</div>
-      </a>
-
-      <a class="card card-collage" href="https://collage.vaultex.me">
-        <div class="card-icon">🖼️</div>
-        <div class="card-title">Collage</div>
-        <div class="card-desc">A shared photo wall — upload, react, and explore moments together.</div>
-        <div class="card-arrow">↗</div>
-      </a>
-
-      <a class="card card-about" href="#">
-        <div class="card-icon">👤</div>
-        <div class="card-title">About</div>
-        <div class="card-desc">Mechanical Engineering student at CWIT, Pune. Builder of things.</div>
-        <div class="card-arrow">↗</div>
-      </a>
-
+    <div class="top-bar">
+      <button class="btn" id="addBtn">+ add frame</button>
+      <button class="btn" id="editBtn">✦ edit</button>
+      <button class="btn" id="leaveBtn">leave</button>
     </div>
-  </main>
-</div>
 
-<footer>© 2026 Vaultex · jinayshah2008 · vaultex.me</footer>
+    <div class="edit-hint">drag to rearrange · tap ✕ to delete</div>
+    <div class="grid" id="grid"></div>
 
+    <div class="add-btn-wrap" id="editAddWrap" style="display:none;">
+      <button class="btn" id="editAddBtn">+ add frame</button>
+    </div>
+  </div>
+
+  <script>
+    // ── ONLY PUBLIC INFO IN HTML ──────────────────────────
+    const BASE = 'https://zuhfvcgyfyszaxjjsaxdf.supabase.co/functions/v1';
+    const SESSION = 'badboy-secret-session-2024';
+
+    // ── HELPERS ──────────────────────────────────────────
+    const call = (fn, body) => fetch(`${BASE}/${fn}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-session-token': SESSION },
+      body: JSON.stringify(body)
+    }).then(r => r.json());
+
+    let visitorName = '';
+    let loginTime   = null;
+    let editMode    = false;
+    let dragSrc     = null;
+    let leftAlready = false;
+
+    // ── LOGIN ─────────────────────────────────────────────
+    document.getElementById('loginBtn').addEventListener('click', handleLogin);
+    document.getElementById('passInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') handleLogin();
+    });
+
+    async function handleLogin() {
+      const name = document.getElementById('nameInput').value.trim();
+      const pass = document.getElementById('passInput').value;
+      const err  = document.getElementById('loginErr');
+
+      if (!name) { err.textContent = 'enter your name'; return; }
+      err.textContent = 'checking...';
+
+      try {
+        const { correct } = await call('check-password', { password: pass });
+        if (!correct) { err.textContent = 'wrong password'; return; }
+      } catch(e) {
+        err.textContent = 'connection error, try again';
+        return;
+      }
+
+      visitorName = name;
+      loginTime   = new Date();
+      leftAlready = false;
+      err.textContent = '';
+
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('appScreen').style.display   = 'block';
+      document.getElementById('visitorTag').textContent    = `welcome, ${name}`;
+
+      call('notify', {
+        subject: `lost braincells — ${name} just logged in`,
+        html: `<p><b>${name}</b> entered the gallery.</p><p>Time: ${loginTime.toLocaleString()}</p>`
+      });
+
+      await loadFrames();
+      window.addEventListener('beforeunload', handleLeave);
+    }
+
+    // ── LEAVE ─────────────────────────────────────────────
+    document.getElementById('leaveBtn').addEventListener('click', () => {
+      doLeave();
+      document.getElementById('appScreen').style.display   = 'none';
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('nameInput').value = '';
+      document.getElementById('passInput').value = '';
+      document.getElementById('loginErr').textContent = '';
+      document.getElementById('grid').innerHTML = '';
+      window.removeEventListener('beforeunload', handleLeave);
+    });
+
+    function handleLeave() { doLeave(); }
+
+    function doLeave() {
+      if (!visitorName || leftAlready) return;
+      leftAlready = true;
+      const mins = Math.round((new Date() - loginTime) / 60000);
+      call('notify', {
+        subject: `lost braincells — ${visitorName} logged out`,
+        html: `<p><b>${visitorName}</b> left the gallery.</p><p>Time spent: <b>${mins} minute${mins !== 1 ? 's' : ''}</b></p>`
+      });
+      visitorName = '';
+    }
+
+    // ── LOAD FRAMES ───────────────────────────────────────
+    async function loadFrames() {
+      const grid = document.getElementById('grid');
+      grid.innerHTML = '';
+
+      const { frames } = await call('gallery', { action: 'load' });
+
+      if (!frames || frames.length === 0) {
+        for (let i = 0; i < 6; i++) createFrame();
+        return;
+      }
+      frames.forEach(row => createFrame(row));
+    }
+
+    // ── CREATE FRAME ──────────────────────────────────────
+    function createFrame(data = null) {
+      const grid  = document.getElementById('grid');
+      const frame = document.createElement('div');
+      frame.className = 'frame';
+      frame.draggable = false;
+      if (data?.id) frame.dataset.id = data.id;
+
+      const inner = document.createElement('div');
+      inner.className = 'frame-inner';
+
+      const plus = document.createElement('div');
+      plus.className   = 'plus';
+      plus.textContent = '+';
+
+      const input = document.createElement('input');
+      input.type   = 'file';
+      input.accept = 'image/*';
+
+      const img = document.createElement('img');
+      img.style.display = 'none';
+      if (data?.image_url) {
+        img.src = data.image_url;
+        img.style.display  = 'block';
+        plus.style.display = 'none';
+      }
+
+      input.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        await uploadPhoto(file, frame, img, plus);
+      });
+
+      inner.appendChild(plus);
+      inner.appendChild(input);
+      inner.appendChild(img);
+
+      const del = document.createElement('button');
+      del.className   = 'delete-btn';
+      del.textContent = '✕';
+      del.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await deleteFrame(frame);
+      });
+
+      frame.appendChild(inner);
+      frame.appendChild(del);
+      grid.appendChild(frame);
+      setupDrag(frame);
+
+      if (!data) saveNewFrame(frame);
+    }
+
+    // ── SAVE NEW FRAME ────────────────────────────────────
+    async function saveNewFrame(frame) {
+      const pos = [...document.getElementById('grid').children].indexOf(frame);
+      const { frame: saved } = await call('gallery', { action: 'add', data: { position: pos } });
+      if (saved) frame.dataset.id = saved.id;
+    }
+
+    // ── UPLOAD PHOTO ──────────────────────────────────────
+    async function uploadPhoto(file, frame, img, plus) {
+      const uploading = document.createElement('div');
+      uploading.className   = 'uploading';
+      uploading.textContent = 'uploading...';
+      frame.querySelector('.frame-inner').appendChild(uploading);
+
+      const ext    = file.name.split('.').pop();
+      const base64 = await toBase64(file);
+
+      const { url, error } = await call('gallery', { action: 'upload', data: { base64, ext } });
+      if (error || !url) { uploading.textContent = 'failed'; return; }
+
+      img.src = url;
+      img.style.display  = 'block';
+      plus.style.display = 'none';
+      uploading.remove();
+
+      if (frame.dataset.id) {
+        await call('gallery', { action: 'update', data: { id: frame.dataset.id, image_url: url } });
+      }
+    }
+
+    function toBase64(file) {
+      return new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload  = () => res(r.result.split(',')[1]);
+        r.onerror = rej;
+        r.readAsDataURL(file);
+      });
+    }
+
+    // ── DELETE FRAME ──────────────────────────────────────
+    async function deleteFrame(frame) {
+      if (frame.dataset.id) {
+        await call('gallery', { action: 'delete', data: { id: frame.dataset.id } });
+      }
+      frame.remove();
+      await savePositions();
+    }
+
+    // ── SAVE POSITIONS ────────────────────────────────────
+    async function savePositions() {
+      const frames = [...document.getElementById('grid').querySelectorAll('.frame')];
+      const data   = frames.map((f, i) => ({ id: f.dataset.id, position: i })).filter(f => f.id);
+      if (data.length) await call('gallery', { action: 'reorder', data: { frames: data } });
+    }
+
+    // ── DRAG & DROP ───────────────────────────────────────
+    function setupDrag(frame) {
+      frame.addEventListener('dragstart', (e) => {
+        if (!editMode) return;
+        dragSrc = frame;
+        setTimeout(() => frame.classList.add('dragging'), 0);
+        e.dataTransfer.effectAllowed = 'move';
+      });
+
+      frame.addEventListener('dragend', async () => {
+        frame.classList.remove('dragging');
+        document.querySelectorAll('.frame').forEach(f => f.classList.remove('drag-over'));
+        await savePositions();
+      });
+
+      frame.addEventListener('dragover', (e) => {
+        if (!editMode) return;
+        e.preventDefault();
+        document.querySelectorAll('.frame').forEach(f => f.classList.remove('drag-over'));
+        if (frame !== dragSrc) frame.classList.add('drag-over');
+      });
+
+      frame.addEventListener('drop', (e) => {
+        if (!editMode || frame === dragSrc) return;
+        e.preventDefault();
+        frame.classList.remove('drag-over');
+        const frames = [...document.getElementById('grid').querySelectorAll('.frame')];
+        const srcIdx = frames.indexOf(dragSrc);
+        const tgtIdx = frames.indexOf(frame);
+        if (srcIdx < tgtIdx) document.getElementById('grid').insertBefore(dragSrc, frame.nextSibling);
+        else document.getElementById('grid').insertBefore(dragSrc, frame);
+      });
+    }
+
+    // ── EDIT MODE ─────────────────────────────────────────
+    function toggleEdit() {
+      editMode = !editMode;
+      document.body.classList.toggle('edit-mode', editMode);
+      const editBtn = document.getElementById('editBtn');
+      editBtn.classList.toggle('active', editMode);
+      document.getElementById('editAddWrap').style.display = editMode ? 'flex' : 'none';
+      editBtn.textContent = editMode ? '✓ done' : '✦ edit';
+      document.querySelectorAll('.frame').forEach(f => {
+        f.draggable = editMode;
+        const input = f.querySelector('input');
+        if (input) input.style.pointerEvents = editMode ? 'none' : 'auto';
+      });
+    }
+
+    document.getElementById('addBtn').addEventListener('click', () => createFrame());
+    document.getElementById('editBtn').addEventListener('click', toggleEdit);
+    document.getElementById('editAddBtn').addEventListener('click', () => createFrame());
+  </script>
 </body>
 </html>
