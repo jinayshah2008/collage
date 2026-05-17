@@ -114,6 +114,22 @@
       margin: 0 auto;
     }
 
+    /* frame wrapper includes photo + name tag below */
+    .frame-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .uploader-tag {
+      text-align: center;
+      color: #cc000088;
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      min-height: 14px;
+    }
+
     .frame {
       aspect-ratio: 4/3;
       border-radius: 18px;
@@ -305,7 +321,6 @@
     </div>
   </div>
 
-  <!-- hidden file inputs -->
   <input type="file" id="fileInput" accept="image/*" style="display:none" />
   <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none" />
 
@@ -324,23 +339,22 @@
     let editMode    = false;
     let dragSrc     = null;
     let leftAlready = false;
-    let activeFrame = null; // which frame is waiting for upload
+    let activeFrame = null;
 
-    // ── SHARED FILE INPUTS ────────────────────────────────
     const fileInput   = document.getElementById('fileInput');
     const cameraInput = document.getElementById('cameraInput');
 
     fileInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file || !activeFrame) return;
-      await uploadPhoto(file, activeFrame.frame, activeFrame.img, activeFrame.plus);
+      await uploadPhoto(file, activeFrame.frame, activeFrame.img, activeFrame.plus, activeFrame.tag);
       fileInput.value = '';
     });
 
     cameraInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file || !activeFrame) return;
-      await uploadPhoto(file, activeFrame.frame, activeFrame.img, activeFrame.plus);
+      await uploadPhoto(file, activeFrame.frame, activeFrame.img, activeFrame.plus, activeFrame.tag);
       cameraInput.value = '';
     });
 
@@ -425,7 +439,12 @@
 
     // ── CREATE FRAME ──────────────────────────────────────
     function createFrame(data = null) {
-      const grid  = document.getElementById('grid');
+      const grid = document.getElementById('grid');
+
+      // wrapper holds frame + uploader tag
+      const wrap = document.createElement('div');
+      wrap.className = 'frame-wrap';
+
       const frame = document.createElement('div');
       frame.className = 'frame';
       frame.draggable = false;
@@ -445,7 +464,7 @@
       camBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (editMode) return;
-        activeFrame = { frame, img, plus };
+        activeFrame = { frame, img, plus, tag };
         cameraInput.click();
       });
 
@@ -454,7 +473,7 @@
       fileBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (editMode) return;
-        activeFrame = { frame, img, plus };
+        activeFrame = { frame, img, plus, tag };
         fileInput.click();
       });
 
@@ -478,26 +497,34 @@
       del.textContent = '✕';
       del.addEventListener('click', async (e) => {
         e.stopPropagation();
-        await deleteFrame(frame);
+        await deleteFrame(frame, wrap);
       });
 
       frame.appendChild(inner);
       frame.appendChild(del);
-      grid.appendChild(frame);
-      setupDrag(frame);
+
+      // uploader tag below frame
+      const tag = document.createElement('div');
+      tag.className = 'uploader-tag';
+      tag.textContent = data?.uploaded_by ? `— ${data.uploaded_by} —` : '';
+
+      wrap.appendChild(frame);
+      wrap.appendChild(tag);
+      grid.appendChild(wrap);
+      setupDrag(frame, wrap);
 
       if (!data) saveNewFrame(frame);
     }
 
     // ── SAVE NEW FRAME ────────────────────────────────────
     async function saveNewFrame(frame) {
-      const pos = [...document.getElementById('grid').children].indexOf(frame);
+      const pos = [...document.getElementById('grid').children].indexOf(frame.closest('.frame-wrap'));
       const { frame: saved } = await call('gallery', { action: 'add', data: { position: pos } });
       if (saved) frame.dataset.id = saved.id;
     }
 
     // ── UPLOAD PHOTO ──────────────────────────────────────
-    async function uploadPhoto(file, frame, img, plus) {
+    async function uploadPhoto(file, frame, img, plus, tag) {
       const uploading = document.createElement('div');
       uploading.className   = 'uploading';
       uploading.textContent = 'uploading...';
@@ -514,8 +541,11 @@
       plus.style.display = 'none';
       uploading.remove();
 
+      // show uploader name
+      tag.textContent = `— ${visitorName} —`;
+
       if (frame.dataset.id) {
-        await call('gallery', { action: 'update', data: { id: frame.dataset.id, image_url: url } });
+        await call('gallery', { action: 'update', data: { id: frame.dataset.id, image_url: url, uploaded_by: visitorName } });
       }
     }
 
@@ -529,11 +559,11 @@
     }
 
     // ── DELETE FRAME ──────────────────────────────────────
-    async function deleteFrame(frame) {
+    async function deleteFrame(frame, wrap) {
       if (frame.dataset.id) {
         await call('gallery', { action: 'delete', data: { id: frame.dataset.id } });
       }
-      frame.remove();
+      wrap.remove();
       await savePositions();
     }
 
@@ -545,10 +575,10 @@
     }
 
     // ── DRAG & DROP ───────────────────────────────────────
-    function setupDrag(frame) {
+    function setupDrag(frame, wrap) {
       frame.addEventListener('dragstart', (e) => {
         if (!editMode) return;
-        dragSrc = frame;
+        dragSrc = wrap;
         setTimeout(() => frame.classList.add('dragging'), 0);
         e.dataTransfer.effectAllowed = 'move';
       });
@@ -563,18 +593,18 @@
         if (!editMode) return;
         e.preventDefault();
         document.querySelectorAll('.frame').forEach(f => f.classList.remove('drag-over'));
-        if (frame !== dragSrc) frame.classList.add('drag-over');
+        if (wrap !== dragSrc) frame.classList.add('drag-over');
       });
 
       frame.addEventListener('drop', (e) => {
-        if (!editMode || frame === dragSrc) return;
+        if (!editMode || wrap === dragSrc) return;
         e.preventDefault();
         frame.classList.remove('drag-over');
-        const frames = [...document.getElementById('grid').querySelectorAll('.frame')];
-        const srcIdx = frames.indexOf(dragSrc);
-        const tgtIdx = frames.indexOf(frame);
-        if (srcIdx < tgtIdx) document.getElementById('grid').insertBefore(dragSrc, frame.nextSibling);
-        else document.getElementById('grid').insertBefore(dragSrc, frame);
+        const wraps  = [...document.getElementById('grid').querySelectorAll('.frame-wrap')];
+        const srcIdx = wraps.indexOf(dragSrc);
+        const tgtIdx = wraps.indexOf(wrap);
+        if (srcIdx < tgtIdx) document.getElementById('grid').insertBefore(dragSrc, wrap.nextSibling);
+        else document.getElementById('grid').insertBefore(dragSrc, wrap);
       });
     }
 
@@ -586,9 +616,7 @@
       editBtn.classList.toggle('active', editMode);
       document.getElementById('editAddWrap').style.display = editMode ? 'flex' : 'none';
       editBtn.textContent = editMode ? '✓ done' : '✦ edit';
-      document.querySelectorAll('.frame').forEach(f => {
-        f.draggable = editMode;
-      });
+      document.querySelectorAll('.frame').forEach(f => { f.draggable = editMode; });
     }
 
     document.getElementById('addBtn').addEventListener('click', () => createFrame());
