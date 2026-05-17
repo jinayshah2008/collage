@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>lost braincells</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -213,7 +214,6 @@
       border-radius: 18px;
     }
 
-    /* video play icon overlay */
     .play-icon {
       position: absolute;
       inset: 0;
@@ -280,7 +280,6 @@
       margin-bottom: 1rem;
     }
 
-    /* ── VIEWER OVERLAY ── */
     #viewer {
       display: none;
       position: fixed;
@@ -353,7 +352,6 @@
 </head>
 <body>
 
-  <!-- LOGIN -->
   <div id="loginScreen">
     <h2>𝓣𝓱𝓮-𝓰𝓻𝓮𝓪𝓽-𝓭𝓲𝓷𝓸𝓼𝓪𝓾𝓻𝓼</h2>
     <input class="login-input" id="nameInput" type="text" placeholder="your name" />
@@ -362,29 +360,23 @@
     <div class="login-err" id="loginErr"></div>
   </div>
 
-  <!-- APP -->
   <div id="appScreen">
     <div class="heading-wrap">
       <span class="heading">𝓣𝓱𝓮-𝓰𝓻𝓮𝓪𝓽-𝓭𝓲𝓷𝓸𝓼𝓪𝓾𝓻𝓼</span>
     </div>
-
     <div class="visitor-tag" id="visitorTag"></div>
-
     <div class="top-bar">
       <button class="btn" id="addBtn">+ add frame</button>
       <button class="btn" id="editBtn">✦ edit</button>
       <button class="btn" id="leaveBtn">leave</button>
     </div>
-
     <div class="edit-hint">drag to rearrange · tap ✕ to delete</div>
     <div class="grid" id="grid"></div>
-
     <div class="add-btn-wrap" id="editAddWrap" style="display:none;">
       <button class="btn" id="editAddBtn">+ add frame</button>
     </div>
   </div>
 
-  <!-- VIEWER -->
   <div id="viewer">
     <div id="viewerBox">
       <div id="viewerMedia"></div>
@@ -396,13 +388,17 @@
     </div>
   </div>
 
-  <!-- hidden inputs -->
   <input type="file" id="fileInput" accept="image/*,video/*" style="display:none" />
   <input type="file" id="cameraInput" accept="image/*,video/*" capture="environment" style="display:none" />
 
   <script>
-    const BASE    = 'https://zuhfvcgfyszaxjjsaxdf.supabase.co/functions/v1';
+    const SUPABASE_URL = 'https://zuhfvcgfyszaxjjsaxdf.supabase.co';
+    const SUPABASE_ANON = 'sb_publishable_fJqVmyDvTpyfBVa1qiKZ6Q_whEaoLAO';
+    const BASE    = `${SUPABASE_URL}/functions/v1`;
     const SESSION = 'badboy-secret-session-2024';
+
+    // supabase client only for direct storage uploads
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
     const call = (fn, body) => fetch(`${BASE}/${fn}`, {
       method: 'POST',
@@ -417,7 +413,6 @@
     let leftAlready = false;
     let activeFrame = null;
     let viewerUrl   = '';
-    let viewerType  = '';
 
     const fileInput   = document.getElementById('fileInput');
     const cameraInput = document.getElementById('cameraInput');
@@ -437,27 +432,22 @@
     });
 
     // ── VIEWER ────────────────────────────────────────────
-    const viewer    = document.getElementById('viewer');
-    const viewerBox = document.getElementById('viewerBox');
+    const viewer      = document.getElementById('viewer');
+    const viewerBox   = document.getElementById('viewerBox');
     const viewerMedia = document.getElementById('viewerMedia');
 
     function openViewer(url, type) {
-      viewerUrl  = url;
-      viewerType = type;
+      viewerUrl = url;
       viewerMedia.innerHTML = '';
-
       if (type === 'video') {
         const v = document.createElement('video');
-        v.src = url;
-        v.controls = true;
-        v.autoplay = true;
+        v.src = url; v.controls = true; v.autoplay = true;
         viewerMedia.appendChild(v);
       } else {
         const img = document.createElement('img');
         img.src = url;
         viewerMedia.appendChild(img);
       }
-
       viewer.classList.add('open');
     }
 
@@ -468,12 +458,9 @@
     }
 
     document.getElementById('viewerClose').addEventListener('click', closeViewer);
+    viewer.addEventListener('click', (e) => { if (e.target === viewer) closeViewer(); });
 
-    viewer.addEventListener('click', (e) => {
-      if (e.target === viewer) closeViewer();
-    });
-
-    document.getElementById('viewerDownload').addEventListener('click', async () => {
+    document.getElementById('viewerDownload').addEventListener('click', () => {
       if (!viewerUrl) return;
       const a = document.createElement('a');
       a.href = viewerUrl;
@@ -483,9 +470,8 @@
     });
 
     document.getElementById('viewerFullscreen').addEventListener('click', () => {
-      const el = viewerBox;
-      if (el.requestFullscreen) el.requestFullscreen();
-      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+      if (viewerBox.requestFullscreen) viewerBox.requestFullscreen();
+      else if (viewerBox.webkitRequestFullscreen) viewerBox.webkitRequestFullscreen();
     });
 
     // ── LOGIN ─────────────────────────────────────────────
@@ -506,8 +492,7 @@
         const { correct } = await call('check-password', { password: pass });
         if (!correct) { err.textContent = 'wrong password'; return; }
       } catch(e) {
-        err.textContent = 'connection error, try again';
-        return;
+        err.textContent = 'connection error, try again'; return;
       }
 
       visitorName = name;
@@ -564,12 +549,12 @@
       frames.forEach(row => createFrame(row));
     }
 
-    // ── CREATE FRAME ──────────────────────────────────────
     function isVideo(url) {
       if (!url) return false;
       return /\.(mp4|mov|webm|avi|mkv|m4v)(\?|$)/i.test(url);
     }
 
+    // ── CREATE FRAME ──────────────────────────────────────
     function createFrame(data = null) {
       const grid  = document.getElementById('grid');
       const frame = document.createElement('div');
@@ -586,7 +571,6 @@
       const plusBtns = document.createElement('div');
       plusBtns.className = 'plus-btns';
 
-      // media element placeholder
       let media = null;
 
       const camBtn = document.createElement('button');
@@ -611,36 +595,22 @@
       plusBtns.appendChild(fileBtn);
       plus.appendChild(plusBtns);
 
-      // load existing media
       if (data?.image_url) {
         const url = data.image_url;
         if (isVideo(url)) {
           media = document.createElement('video');
           media.src = url;
-          media.muted = true;
-          media.loop  = true;
-          media.playsInline = true;
+          media.muted = true; media.loop = true; media.playsInline = true;
           media.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;cursor:pointer;';
-
-          const playIcon = document.createElement('div');
-          playIcon.className = 'play-icon';
-          playIcon.textContent = '▶';
-          inner.appendChild(playIcon);
-
-          media.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (editMode) return;
-            openViewer(url, 'video');
-          });
+          const pi = document.createElement('div');
+          pi.className = 'play-icon'; pi.textContent = '▶';
+          inner.appendChild(pi);
+          media.addEventListener('click', (e) => { e.stopPropagation(); if (!editMode) openViewer(url, 'video'); });
         } else {
           media = document.createElement('img');
           media.src = url;
           media.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;cursor:pointer;';
-          media.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (editMode) return;
-            openViewer(url, 'image');
-          });
+          media.addEventListener('click', (e) => { e.stopPropagation(); if (!editMode) openViewer(url, 'image'); });
         }
         plus.style.display = 'none';
       }
@@ -649,118 +619,93 @@
       if (media) inner.appendChild(media);
 
       const del = document.createElement('button');
-      del.className   = 'delete-btn';
-      del.textContent = '✕';
-      del.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        await deleteFrame(frame);
-      });
+      del.className = 'delete-btn'; del.textContent = '✕';
+      del.addEventListener('click', async (e) => { e.stopPropagation(); await deleteFrame(frame); });
 
       frame.appendChild(inner);
       frame.appendChild(del);
       grid.appendChild(frame);
       setupDrag(frame);
-
       if (!data) saveNewFrame(frame);
     }
 
-    // ── SAVE NEW FRAME ────────────────────────────────────
     async function saveNewFrame(frame) {
       const pos = [...document.getElementById('grid').children].indexOf(frame);
       const { frame: saved } = await call('gallery', { action: 'add', data: { position: pos } });
       if (saved) frame.dataset.id = saved.id;
     }
 
-    // ── UPLOAD MEDIA ──────────────────────────────────────
+    // ── UPLOAD DIRECTLY TO STORAGE ────────────────────────
     async function uploadMedia(file, frame, oldMedia, plus) {
       const uploading = document.createElement('div');
-      uploading.className   = 'uploading';
+      uploading.className = 'uploading';
       uploading.textContent = 'uploading...';
       frame.querySelector('.frame-inner').appendChild(uploading);
 
       const ext      = file.name.split('.').pop() || 'jpg';
       const fileType = file.type.startsWith('video') ? 'video' : 'image';
-      const base64   = await toBase64(file);
+      const path     = `shared/${Date.now()}.${ext}`;
 
-      const { url, error } = await call('gallery', {
-        action: 'upload',
-        data: { base64, ext, uploaderName: visitorName, fileType }
+      // upload directly to Supabase Storage (no size limit via edge fn)
+      const { error: upErr } = await sb.storage.from('photos').upload(path, file, {
+        contentType: file.type
       });
-      if (error || !url) { uploading.textContent = 'failed'; return; }
+
+      if (upErr) { uploading.textContent = 'failed'; console.error(upErr); return; }
+
+      const { data: urlData } = sb.storage.from('photos').getPublicUrl(path);
+      const url = urlData.publicUrl;
 
       uploading.remove();
-
-      // remove old media
       if (oldMedia) oldMedia.remove();
       frame.querySelector('.frame-inner').querySelectorAll('.play-icon').forEach(e => e.remove());
 
-      // add new media element
-      let newMedia;
       const inner = frame.querySelector('.frame-inner');
+      let newMedia;
 
       if (fileType === 'video') {
         newMedia = document.createElement('video');
-        newMedia.src = url;
-        newMedia.muted = true;
-        newMedia.loop  = true;
-        newMedia.playsInline = true;
+        newMedia.src = url; newMedia.muted = true; newMedia.loop = true; newMedia.playsInline = true;
         newMedia.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;cursor:pointer;';
-
-        const playIcon = document.createElement('div');
-        playIcon.className = 'play-icon';
-        playIcon.textContent = '▶';
-        inner.appendChild(playIcon);
-
-        newMedia.addEventListener('click', (e) => {
-          e.stopPropagation();
-          if (editMode) return;
-          openViewer(url, 'video');
-        });
+        const pi = document.createElement('div');
+        pi.className = 'play-icon'; pi.textContent = '▶';
+        inner.appendChild(pi);
+        newMedia.addEventListener('click', (e) => { e.stopPropagation(); if (!editMode) openViewer(url, 'video'); });
       } else {
         newMedia = document.createElement('img');
         newMedia.src = url;
         newMedia.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;cursor:pointer;';
-        newMedia.addEventListener('click', (e) => {
-          e.stopPropagation();
-          if (editMode) return;
-          openViewer(url, 'image');
-        });
+        newMedia.addEventListener('click', (e) => { e.stopPropagation(); if (!editMode) openViewer(url, 'image'); });
       }
 
       inner.appendChild(newMedia);
       plus.style.display = 'none';
+
+      // notify via edge function
+      call('notify', {
+        subject: `lost braincells — ${visitorName} uploaded a ${fileType}`,
+        html: fileType === 'video'
+          ? `<p><b>${visitorName}</b> uploaded a video at ${new Date().toLocaleString()}.</p><p><a href="${url}">▶ Watch video</a></p>`
+          : `<p><b>${visitorName}</b> uploaded a photo at ${new Date().toLocaleString()}.</p><p><img src="${url}" style="max-width:400px;" /></p>`
+      });
 
       if (frame.dataset.id) {
         await call('gallery', { action: 'update', data: { id: frame.dataset.id, image_url: url } });
       }
     }
 
-    function toBase64(file) {
-      return new Promise((res, rej) => {
-        const r = new FileReader();
-        r.onload  = () => res(r.result.split(',')[1]);
-        r.onerror = rej;
-        r.readAsDataURL(file);
-      });
-    }
-
-    // ── DELETE FRAME ──────────────────────────────────────
     async function deleteFrame(frame) {
-      if (frame.dataset.id) {
-        await call('gallery', { action: 'delete', data: { id: frame.dataset.id } });
-      }
+      if (frame.dataset.id) await call('gallery', { action: 'delete', data: { id: frame.dataset.id } });
       frame.remove();
       await savePositions();
     }
 
-    // ── SAVE POSITIONS ────────────────────────────────────
     async function savePositions() {
       const frames = [...document.getElementById('grid').querySelectorAll('.frame')];
       const data   = frames.map((f, i) => ({ id: f.dataset.id, position: i })).filter(f => f.id);
       if (data.length) await call('gallery', { action: 'reorder', data: { frames: data } });
     }
 
-    // ── DRAG & DROP ───────────────────────────────────────
     function setupDrag(frame) {
       frame.addEventListener('dragstart', (e) => {
         if (!editMode) return;
@@ -768,20 +713,17 @@
         setTimeout(() => frame.classList.add('dragging'), 0);
         e.dataTransfer.effectAllowed = 'move';
       });
-
       frame.addEventListener('dragend', async () => {
         frame.classList.remove('dragging');
         document.querySelectorAll('.frame').forEach(f => f.classList.remove('drag-over'));
         await savePositions();
       });
-
       frame.addEventListener('dragover', (e) => {
         if (!editMode) return;
         e.preventDefault();
         document.querySelectorAll('.frame').forEach(f => f.classList.remove('drag-over'));
         if (frame !== dragSrc) frame.classList.add('drag-over');
       });
-
       frame.addEventListener('drop', (e) => {
         if (!editMode || frame === dragSrc) return;
         e.preventDefault();
@@ -794,7 +736,6 @@
       });
     }
 
-    // ── EDIT MODE ─────────────────────────────────────────
     function toggleEdit() {
       editMode = !editMode;
       document.body.classList.toggle('edit-mode', editMode);
