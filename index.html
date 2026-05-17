@@ -167,28 +167,34 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 10px;
+      gap: 6px;
       z-index: 2;
       pointer-events: none;
     }
 
     .frame .plus-btns {
       display: flex;
-      gap: 10px;
+      flex-direction: column;
+      gap: 6px;
       pointer-events: all;
+      width: 80%;
     }
 
     .frame .plus-btns button {
       background: transparent;
       border: 1px solid #cc000066;
       color: #cc000099;
-      font-size: 11px;
-      padding: 6px 12px;
+      font-size: 10px;
+      padding: 5px 8px;
       border-radius: 6px;
       cursor: pointer;
       letter-spacing: 1px;
       text-transform: uppercase;
       transition: all 0.2s;
+      width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .frame .plus-btns button:hover {
@@ -444,7 +450,7 @@
       });
 
       const fileBtn = document.createElement('button');
-      fileBtn.textContent = '🖼 file';
+      fileBtn.textContent = '🖼 img';
       fileBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (editMode) return;
