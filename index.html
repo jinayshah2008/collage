@@ -114,22 +114,6 @@
       margin: 0 auto;
     }
 
-    /* frame wrapper includes photo + name tag below */
-    .frame-wrap {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .uploader-tag {
-      text-align: center;
-      color: #cc000088;
-      font-size: 10px;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      min-height: 14px;
-    }
-
     .frame {
       aspect-ratio: 4/3;
       border-radius: 18px;
@@ -347,18 +331,17 @@
     fileInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file || !activeFrame) return;
-      await uploadPhoto(file, activeFrame.frame, activeFrame.img, activeFrame.plus, activeFrame.tag);
+      await uploadPhoto(file, activeFrame.frame, activeFrame.img, activeFrame.plus);
       fileInput.value = '';
     });
 
     cameraInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file || !activeFrame) return;
-      await uploadPhoto(file, activeFrame.frame, activeFrame.img, activeFrame.plus, activeFrame.tag);
+      await uploadPhoto(file, activeFrame.frame, activeFrame.img, activeFrame.plus);
       cameraInput.value = '';
     });
 
-    // ── LOGIN ─────────────────────────────────────────────
     document.getElementById('loginBtn').addEventListener('click', handleLogin);
     document.getElementById('passInput').addEventListener('keydown', e => {
       if (e.key === 'Enter') handleLogin();
@@ -398,7 +381,6 @@
       window.addEventListener('beforeunload', handleLeave);
     }
 
-    // ── LEAVE ─────────────────────────────────────────────
     document.getElementById('leaveBtn').addEventListener('click', () => {
       doLeave();
       document.getElementById('appScreen').style.display   = 'none';
@@ -423,13 +405,10 @@
       visitorName = '';
     }
 
-    // ── LOAD FRAMES ───────────────────────────────────────
     async function loadFrames() {
       const grid = document.getElementById('grid');
       grid.innerHTML = '';
-
       const { frames } = await call('gallery', { action: 'load' });
-
       if (!frames || frames.length === 0) {
         for (let i = 0; i < 6; i++) createFrame();
         return;
@@ -437,14 +416,8 @@
       frames.forEach(row => createFrame(row));
     }
 
-    // ── CREATE FRAME ──────────────────────────────────────
     function createFrame(data = null) {
-      const grid = document.getElementById('grid');
-
-      // wrapper holds frame + uploader tag
-      const wrap = document.createElement('div');
-      wrap.className = 'frame-wrap';
-
+      const grid  = document.getElementById('grid');
       const frame = document.createElement('div');
       frame.className = 'frame';
       frame.draggable = false;
@@ -464,7 +437,7 @@
       camBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (editMode) return;
-        activeFrame = { frame, img, plus, tag };
+        activeFrame = { frame, img, plus };
         cameraInput.click();
       });
 
@@ -473,7 +446,7 @@
       fileBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (editMode) return;
-        activeFrame = { frame, img, plus, tag };
+        activeFrame = { frame, img, plus };
         fileInput.click();
       });
 
@@ -497,34 +470,24 @@
       del.textContent = '✕';
       del.addEventListener('click', async (e) => {
         e.stopPropagation();
-        await deleteFrame(frame, wrap);
+        await deleteFrame(frame);
       });
 
       frame.appendChild(inner);
       frame.appendChild(del);
-
-      // uploader tag below frame
-      const tag = document.createElement('div');
-      tag.className = 'uploader-tag';
-      tag.textContent = data?.uploaded_by ? `— ${data.uploaded_by} —` : '';
-
-      wrap.appendChild(frame);
-      wrap.appendChild(tag);
-      grid.appendChild(wrap);
-      setupDrag(frame, wrap);
+      grid.appendChild(frame);
+      setupDrag(frame);
 
       if (!data) saveNewFrame(frame);
     }
 
-    // ── SAVE NEW FRAME ────────────────────────────────────
     async function saveNewFrame(frame) {
-      const pos = [...document.getElementById('grid').children].indexOf(frame.closest('.frame-wrap'));
+      const pos = [...document.getElementById('grid').children].indexOf(frame);
       const { frame: saved } = await call('gallery', { action: 'add', data: { position: pos } });
       if (saved) frame.dataset.id = saved.id;
     }
 
-    // ── UPLOAD PHOTO ──────────────────────────────────────
-    async function uploadPhoto(file, frame, img, plus, tag) {
+    async function uploadPhoto(file, frame, img, plus) {
       const uploading = document.createElement('div');
       uploading.className   = 'uploading';
       uploading.textContent = 'uploading...';
@@ -541,11 +504,8 @@
       plus.style.display = 'none';
       uploading.remove();
 
-      // show uploader name
-      tag.textContent = `— ${visitorName} —`;
-
       if (frame.dataset.id) {
-        await call('gallery', { action: 'update', data: { id: frame.dataset.id, image_url: url, uploaded_by: visitorName } });
+        await call('gallery', { action: 'update', data: { id: frame.dataset.id, image_url: url } });
       }
     }
 
@@ -558,27 +518,24 @@
       });
     }
 
-    // ── DELETE FRAME ──────────────────────────────────────
-    async function deleteFrame(frame, wrap) {
+    async function deleteFrame(frame) {
       if (frame.dataset.id) {
         await call('gallery', { action: 'delete', data: { id: frame.dataset.id } });
       }
-      wrap.remove();
+      frame.remove();
       await savePositions();
     }
 
-    // ── SAVE POSITIONS ────────────────────────────────────
     async function savePositions() {
       const frames = [...document.getElementById('grid').querySelectorAll('.frame')];
       const data   = frames.map((f, i) => ({ id: f.dataset.id, position: i })).filter(f => f.id);
       if (data.length) await call('gallery', { action: 'reorder', data: { frames: data } });
     }
 
-    // ── DRAG & DROP ───────────────────────────────────────
-    function setupDrag(frame, wrap) {
+    function setupDrag(frame) {
       frame.addEventListener('dragstart', (e) => {
         if (!editMode) return;
-        dragSrc = wrap;
+        dragSrc = frame;
         setTimeout(() => frame.classList.add('dragging'), 0);
         e.dataTransfer.effectAllowed = 'move';
       });
@@ -593,22 +550,21 @@
         if (!editMode) return;
         e.preventDefault();
         document.querySelectorAll('.frame').forEach(f => f.classList.remove('drag-over'));
-        if (wrap !== dragSrc) frame.classList.add('drag-over');
+        if (frame !== dragSrc) frame.classList.add('drag-over');
       });
 
       frame.addEventListener('drop', (e) => {
-        if (!editMode || wrap === dragSrc) return;
+        if (!editMode || frame === dragSrc) return;
         e.preventDefault();
         frame.classList.remove('drag-over');
-        const wraps  = [...document.getElementById('grid').querySelectorAll('.frame-wrap')];
-        const srcIdx = wraps.indexOf(dragSrc);
-        const tgtIdx = wraps.indexOf(wrap);
-        if (srcIdx < tgtIdx) document.getElementById('grid').insertBefore(dragSrc, wrap.nextSibling);
-        else document.getElementById('grid').insertBefore(dragSrc, wrap);
+        const frames = [...document.getElementById('grid').querySelectorAll('.frame')];
+        const srcIdx = frames.indexOf(dragSrc);
+        const tgtIdx = frames.indexOf(frame);
+        if (srcIdx < tgtIdx) document.getElementById('grid').insertBefore(dragSrc, frame.nextSibling);
+        else document.getElementById('grid').insertBefore(dragSrc, frame);
       });
     }
 
-    // ── EDIT MODE ─────────────────────────────────────────
     function toggleEdit() {
       editMode = !editMode;
       document.body.classList.toggle('edit-mode', editMode);
