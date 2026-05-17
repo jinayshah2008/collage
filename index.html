@@ -151,16 +151,6 @@
       overflow: hidden;
     }
 
-    .frame input[type="file"] {
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      cursor: pointer;
-      width: 100%;
-      height: 100%;
-      z-index: 2;
-    }
-
     .frame img {
       position: absolute;
       inset: 0;
@@ -174,12 +164,37 @@
       position: absolute;
       inset: 0;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      color: #cc000055;
-      font-size: 28px;
-      z-index: 0;
+      gap: 10px;
+      z-index: 2;
       pointer-events: none;
+    }
+
+    .frame .plus-btns {
+      display: flex;
+      gap: 10px;
+      pointer-events: all;
+    }
+
+    .frame .plus-btns button {
+      background: transparent;
+      border: 1px solid #cc000066;
+      color: #cc000099;
+      font-size: 11px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: all 0.2s;
+    }
+
+    .frame .plus-btns button:hover {
+      border-color: #cc0000;
+      color: #ff3333;
+      box-shadow: 0 0 8px #cc000066;
     }
 
     .frame .uploading {
@@ -221,7 +236,7 @@
 
     .edit-mode .frame { cursor: grab; }
     .edit-mode .delete-btn { display: flex; }
-    .edit-mode .frame input[type="file"] { pointer-events: none; }
+    .edit-mode .frame .plus-btns { pointer-events: none; opacity: 0.3; }
 
     .edit-hint {
       display: none;
@@ -284,12 +299,14 @@
     </div>
   </div>
 
+  <!-- hidden file inputs -->
+  <input type="file" id="fileInput" accept="image/*" style="display:none" />
+  <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none" />
+
   <script>
-    // ── ONLY PUBLIC INFO IN HTML ──────────────────────────
-    const BASE = 'https://zuhfvcgfyszaxjjsaxdf.supabase.co/functions/v1';
+    const BASE    = 'https://zuhfvcgfyszaxjjsaxdf.supabase.co/functions/v1';
     const SESSION = 'badboy-secret-session-2024';
 
-    // ── HELPERS ──────────────────────────────────────────
     const call = (fn, body) => fetch(`${BASE}/${fn}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-session-token': SESSION },
@@ -301,6 +318,25 @@
     let editMode    = false;
     let dragSrc     = null;
     let leftAlready = false;
+    let activeFrame = null; // which frame is waiting for upload
+
+    // ── SHARED FILE INPUTS ────────────────────────────────
+    const fileInput   = document.getElementById('fileInput');
+    const cameraInput = document.getElementById('cameraInput');
+
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file || !activeFrame) return;
+      await uploadPhoto(file, activeFrame.frame, activeFrame.img, activeFrame.plus);
+      fileInput.value = '';
+    });
+
+    cameraInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file || !activeFrame) return;
+      await uploadPhoto(file, activeFrame.frame, activeFrame.img, activeFrame.plus);
+      cameraInput.value = '';
+    });
 
     // ── LOGIN ─────────────────────────────────────────────
     document.getElementById('loginBtn').addEventListener('click', handleLogin);
@@ -393,12 +429,32 @@
       inner.className = 'frame-inner';
 
       const plus = document.createElement('div');
-      plus.className   = 'plus';
-      plus.textContent = '+';
+      plus.className = 'plus';
 
-      const input = document.createElement('input');
-      input.type   = 'file';
-      input.accept = 'image/*';
+      const plusBtns = document.createElement('div');
+      plusBtns.className = 'plus-btns';
+
+      const camBtn = document.createElement('button');
+      camBtn.textContent = '📷 camera';
+      camBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (editMode) return;
+        activeFrame = { frame, img, plus };
+        cameraInput.click();
+      });
+
+      const fileBtn = document.createElement('button');
+      fileBtn.textContent = '🖼 file';
+      fileBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (editMode) return;
+        activeFrame = { frame, img, plus };
+        fileInput.click();
+      });
+
+      plusBtns.appendChild(camBtn);
+      plusBtns.appendChild(fileBtn);
+      plus.appendChild(plusBtns);
 
       const img = document.createElement('img');
       img.style.display = 'none';
@@ -408,14 +464,7 @@
         plus.style.display = 'none';
       }
 
-      input.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        await uploadPhoto(file, frame, img, plus);
-      });
-
       inner.appendChild(plus);
-      inner.appendChild(input);
       inner.appendChild(img);
 
       const del = document.createElement('button');
@@ -448,7 +497,7 @@
       uploading.textContent = 'uploading...';
       frame.querySelector('.frame-inner').appendChild(uploading);
 
-      const ext    = file.name.split('.').pop();
+      const ext    = file.name.split('.').pop() || 'jpg';
       const base64 = await toBase64(file);
 
       const { url, error } = await call('gallery', { action: 'upload', data: { base64, ext, uploaderName: visitorName } });
@@ -533,8 +582,6 @@
       editBtn.textContent = editMode ? '✓ done' : '✦ edit';
       document.querySelectorAll('.frame').forEach(f => {
         f.draggable = editMode;
-        const input = f.querySelector('input');
-        if (input) input.style.pointerEvents = editMode ? 'none' : 'auto';
       });
     }
 
