@@ -286,7 +286,7 @@
 
   <script>
     // ── ONLY PUBLIC INFO IN HTML ──────────────────────────
-    const BASE = 'https://zuhfvcgfyszaxjjsaxdf.supabase.co/functions/v1';
+    const BASE = 'https://zuhfvcgyfyszaxjjsaxdf.supabase.co/functions/v1';
     const SESSION = 'badboy-secret-session-2024';
 
     // ── HELPERS ──────────────────────────────────────────
@@ -451,7 +451,7 @@
       const ext    = file.name.split('.').pop();
       const base64 = await toBase64(file);
 
-      const { url, error } = await call('gallery', { action: 'upload', data: { base64, ext } });
+      const { url, error } = await call('gallery', { action: 'upload', data: { base64, ext, uploaderName: visitorName } });
       if (error || !url) { uploading.textContent = 'failed'; return; }
 
       img.src = url;
