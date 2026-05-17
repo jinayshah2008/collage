@@ -58,10 +58,7 @@
 
     #appScreen { display: none; }
 
-    .heading-wrap {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
+    .heading-wrap { text-align: center; margin-bottom: 2rem; }
 
     .heading {
       font-size: 58px;
@@ -151,13 +148,14 @@
       overflow: hidden;
     }
 
-    .frame img {
+    .frame img, .frame video {
       position: absolute;
       inset: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
       z-index: 1;
+      cursor: pointer;
     }
 
     .frame .plus {
@@ -192,9 +190,6 @@
       text-transform: uppercase;
       transition: all 0.2s;
       width: 100%;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
 
     .frame .plus-btns button:hover {
@@ -216,6 +211,20 @@
       z-index: 3;
       background: #0a000088;
       border-radius: 18px;
+    }
+
+    /* video play icon overlay */
+    .play-icon {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+      pointer-events: none;
+      font-size: 32px;
+      color: #ffffff99;
+      text-shadow: 0 0 10px #000;
     }
 
     .delete-btn {
@@ -270,6 +279,76 @@
       text-transform: uppercase;
       margin-bottom: 1rem;
     }
+
+    /* ── VIEWER OVERLAY ── */
+    #viewer {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #000000cc;
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #viewer.open { display: flex; }
+
+    #viewerBox {
+      background: #0a0000;
+      border: 1px solid #cc0000;
+      box-shadow: 0 0 30px #cc000066;
+      border-radius: 16px;
+      width: 80vw;
+      max-width: 900px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #viewerMedia {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    #viewerMedia img, #viewerMedia video {
+      max-width: 100%;
+      max-height: 70vh;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+
+    #viewerControls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      padding: 12px;
+      flex-shrink: 0;
+    }
+
+    #viewerControls button {
+      background: transparent;
+      border: 1px solid #cc0000;
+      box-shadow: 0 0 6px #cc000066;
+      color: #cc0000;
+      font-size: 11px;
+      padding: 6px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      transition: all 0.2s;
+    }
+
+    #viewerControls button:hover {
+      box-shadow: 0 0 10px #cc0000aa;
+      color: #ff3333;
+    }
   </style>
 </head>
 <body>
@@ -305,8 +384,21 @@
     </div>
   </div>
 
-  <input type="file" id="fileInput" accept="image/*" style="display:none" />
-  <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none" />
+  <!-- VIEWER -->
+  <div id="viewer">
+    <div id="viewerBox">
+      <div id="viewerMedia"></div>
+      <div id="viewerControls">
+        <button id="viewerClose">✕ close</button>
+        <button id="viewerDownload">↓ download</button>
+        <button id="viewerFullscreen">⛶ fullscreen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- hidden inputs -->
+  <input type="file" id="fileInput" accept="image/*,video/*" style="display:none" />
+  <input type="file" id="cameraInput" accept="image/*,video/*" capture="environment" style="display:none" />
 
   <script>
     const BASE    = 'https://zuhfvcgfyszaxjjsaxdf.supabase.co/functions/v1';
@@ -324,6 +416,8 @@
     let dragSrc     = null;
     let leftAlready = false;
     let activeFrame = null;
+    let viewerUrl   = '';
+    let viewerType  = '';
 
     const fileInput   = document.getElementById('fileInput');
     const cameraInput = document.getElementById('cameraInput');
@@ -331,17 +425,70 @@
     fileInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file || !activeFrame) return;
-      await uploadPhoto(file, activeFrame.frame, activeFrame.img, activeFrame.plus);
+      await uploadMedia(file, activeFrame.frame, activeFrame.media, activeFrame.plus);
       fileInput.value = '';
     });
 
     cameraInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file || !activeFrame) return;
-      await uploadPhoto(file, activeFrame.frame, activeFrame.img, activeFrame.plus);
+      await uploadMedia(file, activeFrame.frame, activeFrame.media, activeFrame.plus);
       cameraInput.value = '';
     });
 
+    // ── VIEWER ────────────────────────────────────────────
+    const viewer    = document.getElementById('viewer');
+    const viewerBox = document.getElementById('viewerBox');
+    const viewerMedia = document.getElementById('viewerMedia');
+
+    function openViewer(url, type) {
+      viewerUrl  = url;
+      viewerType = type;
+      viewerMedia.innerHTML = '';
+
+      if (type === 'video') {
+        const v = document.createElement('video');
+        v.src = url;
+        v.controls = true;
+        v.autoplay = true;
+        viewerMedia.appendChild(v);
+      } else {
+        const img = document.createElement('img');
+        img.src = url;
+        viewerMedia.appendChild(img);
+      }
+
+      viewer.classList.add('open');
+    }
+
+    function closeViewer() {
+      viewer.classList.remove('open');
+      viewerMedia.innerHTML = '';
+      viewerUrl = '';
+    }
+
+    document.getElementById('viewerClose').addEventListener('click', closeViewer);
+
+    viewer.addEventListener('click', (e) => {
+      if (e.target === viewer) closeViewer();
+    });
+
+    document.getElementById('viewerDownload').addEventListener('click', async () => {
+      if (!viewerUrl) return;
+      const a = document.createElement('a');
+      a.href = viewerUrl;
+      a.download = viewerUrl.split('/').pop();
+      a.target = '_blank';
+      a.click();
+    });
+
+    document.getElementById('viewerFullscreen').addEventListener('click', () => {
+      const el = viewerBox;
+      if (el.requestFullscreen) el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    });
+
+    // ── LOGIN ─────────────────────────────────────────────
     document.getElementById('loginBtn').addEventListener('click', handleLogin);
     document.getElementById('passInput').addEventListener('keydown', e => {
       if (e.key === 'Enter') handleLogin();
@@ -405,6 +552,7 @@
       visitorName = '';
     }
 
+    // ── LOAD FRAMES ───────────────────────────────────────
     async function loadFrames() {
       const grid = document.getElementById('grid');
       grid.innerHTML = '';
@@ -414,6 +562,12 @@
         return;
       }
       frames.forEach(row => createFrame(row));
+    }
+
+    // ── CREATE FRAME ──────────────────────────────────────
+    function isVideo(url) {
+      if (!url) return false;
+      return /\.(mp4|mov|webm|avi|mkv|m4v)(\?|$)/i.test(url);
     }
 
     function createFrame(data = null) {
@@ -432,21 +586,24 @@
       const plusBtns = document.createElement('div');
       plusBtns.className = 'plus-btns';
 
+      // media element placeholder
+      let media = null;
+
       const camBtn = document.createElement('button');
       camBtn.textContent = '📷 camera';
       camBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (editMode) return;
-        activeFrame = { frame, img, plus };
+        activeFrame = { frame, media, plus };
         cameraInput.click();
       });
 
       const fileBtn = document.createElement('button');
-      fileBtn.textContent = '🖼 img';
+      fileBtn.textContent = '🖼 img / 🎥 video';
       fileBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (editMode) return;
-        activeFrame = { frame, img, plus };
+        activeFrame = { frame, media, plus };
         fileInput.click();
       });
 
@@ -454,16 +611,42 @@
       plusBtns.appendChild(fileBtn);
       plus.appendChild(plusBtns);
 
-      const img = document.createElement('img');
-      img.style.display = 'none';
+      // load existing media
       if (data?.image_url) {
-        img.src = data.image_url;
-        img.style.display  = 'block';
+        const url = data.image_url;
+        if (isVideo(url)) {
+          media = document.createElement('video');
+          media.src = url;
+          media.muted = true;
+          media.loop  = true;
+          media.playsInline = true;
+          media.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;cursor:pointer;';
+
+          const playIcon = document.createElement('div');
+          playIcon.className = 'play-icon';
+          playIcon.textContent = '▶';
+          inner.appendChild(playIcon);
+
+          media.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (editMode) return;
+            openViewer(url, 'video');
+          });
+        } else {
+          media = document.createElement('img');
+          media.src = url;
+          media.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;cursor:pointer;';
+          media.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (editMode) return;
+            openViewer(url, 'image');
+          });
+        }
         plus.style.display = 'none';
       }
 
       inner.appendChild(plus);
-      inner.appendChild(img);
+      if (media) inner.appendChild(media);
 
       const del = document.createElement('button');
       del.className   = 'delete-btn';
@@ -481,28 +664,71 @@
       if (!data) saveNewFrame(frame);
     }
 
+    // ── SAVE NEW FRAME ────────────────────────────────────
     async function saveNewFrame(frame) {
       const pos = [...document.getElementById('grid').children].indexOf(frame);
       const { frame: saved } = await call('gallery', { action: 'add', data: { position: pos } });
       if (saved) frame.dataset.id = saved.id;
     }
 
-    async function uploadPhoto(file, frame, img, plus) {
+    // ── UPLOAD MEDIA ──────────────────────────────────────
+    async function uploadMedia(file, frame, oldMedia, plus) {
       const uploading = document.createElement('div');
       uploading.className   = 'uploading';
       uploading.textContent = 'uploading...';
       frame.querySelector('.frame-inner').appendChild(uploading);
 
-      const ext    = file.name.split('.').pop() || 'jpg';
-      const base64 = await toBase64(file);
+      const ext      = file.name.split('.').pop() || 'jpg';
+      const fileType = file.type.startsWith('video') ? 'video' : 'image';
+      const base64   = await toBase64(file);
 
-      const { url, error } = await call('gallery', { action: 'upload', data: { base64, ext, uploaderName: visitorName } });
+      const { url, error } = await call('gallery', {
+        action: 'upload',
+        data: { base64, ext, uploaderName: visitorName, fileType }
+      });
       if (error || !url) { uploading.textContent = 'failed'; return; }
 
-      img.src = url;
-      img.style.display  = 'block';
-      plus.style.display = 'none';
       uploading.remove();
+
+      // remove old media
+      if (oldMedia) oldMedia.remove();
+      frame.querySelector('.frame-inner').querySelectorAll('.play-icon').forEach(e => e.remove());
+
+      // add new media element
+      let newMedia;
+      const inner = frame.querySelector('.frame-inner');
+
+      if (fileType === 'video') {
+        newMedia = document.createElement('video');
+        newMedia.src = url;
+        newMedia.muted = true;
+        newMedia.loop  = true;
+        newMedia.playsInline = true;
+        newMedia.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;cursor:pointer;';
+
+        const playIcon = document.createElement('div');
+        playIcon.className = 'play-icon';
+        playIcon.textContent = '▶';
+        inner.appendChild(playIcon);
+
+        newMedia.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (editMode) return;
+          openViewer(url, 'video');
+        });
+      } else {
+        newMedia = document.createElement('img');
+        newMedia.src = url;
+        newMedia.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;cursor:pointer;';
+        newMedia.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (editMode) return;
+          openViewer(url, 'image');
+        });
+      }
+
+      inner.appendChild(newMedia);
+      plus.style.display = 'none';
 
       if (frame.dataset.id) {
         await call('gallery', { action: 'update', data: { id: frame.dataset.id, image_url: url } });
@@ -518,6 +744,7 @@
       });
     }
 
+    // ── DELETE FRAME ──────────────────────────────────────
     async function deleteFrame(frame) {
       if (frame.dataset.id) {
         await call('gallery', { action: 'delete', data: { id: frame.dataset.id } });
@@ -526,12 +753,14 @@
       await savePositions();
     }
 
+    // ── SAVE POSITIONS ────────────────────────────────────
     async function savePositions() {
       const frames = [...document.getElementById('grid').querySelectorAll('.frame')];
       const data   = frames.map((f, i) => ({ id: f.dataset.id, position: i })).filter(f => f.id);
       if (data.length) await call('gallery', { action: 'reorder', data: { frames: data } });
     }
 
+    // ── DRAG & DROP ───────────────────────────────────────
     function setupDrag(frame) {
       frame.addEventListener('dragstart', (e) => {
         if (!editMode) return;
@@ -565,6 +794,7 @@
       });
     }
 
+    // ── EDIT MODE ─────────────────────────────────────────
     function toggleEdit() {
       editMode = !editMode;
       document.body.classList.toggle('edit-mode', editMode);
